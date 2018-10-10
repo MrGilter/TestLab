@@ -63,7 +63,7 @@ namespace Lab_connection_database_1
         }
         static void Replace(string connectionStr,string n_str,string z_str,string new_str)
         {
-            string sqlExp;
+            
             using(SqlConnection conn_upate = new SqlConnection(connectionStr))
             {
                 conn_upate.Open();
