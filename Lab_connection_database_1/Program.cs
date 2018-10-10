@@ -12,6 +12,16 @@ namespace Lab_connection_database_1
     {
         static void Main(string[] args)
         {
+            
+            Console.ReadLine();
+        }
+        
+
+        void lab_db_4()
+        {
+            /*
+             static void Main(string[] args)
+        {
             string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
             string sqlExpression = "SELECT * FROM TEST_lab_tab";
             string str1, str2,str3;
@@ -80,7 +90,8 @@ namespace Lab_connection_database_1
             }
 
         }
-        
+             */
+        } // изменение значения в БД с помощью использования добавленной функции
         void lab_db_3()
         {/*
             static void Main(string[] args)
