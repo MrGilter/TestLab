@@ -14,6 +14,7 @@ namespace Lab_connection_database_1
         static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
         static void Main(string[] args)
         {
+<<<<<<< Updated upstream
             string sqlExpression = "SELECT * FROM TEST_lab_tab";
             using(SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -66,6 +67,8 @@ namespace Lab_connection_database_1
             /*
              static void Main(string[] args)
         {
+=======
+>>>>>>> Stashed changes
             string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
             string sqlExpression = "SELECT * FROM TEST_lab_tab";
             string str1, str2,str3;
@@ -134,8 +137,7 @@ namespace Lab_connection_database_1
             }
 
         }
-             */
-        } // изменение значения в БД с помощью использования добавленной функции
+        
         void lab_db_3()
         {/*
             static void Main(string[] args)
