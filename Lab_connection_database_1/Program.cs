@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -10,166 +11,346 @@ using System.IO;
 
 namespace Lab_connection_database_1
 {
-    class TVSet
+    class Stydent
     {
-        static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-        static string sqlExpression = "SELECT * FROM TEST_lab_tab";
-        //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
+        private string name;
+        private int kurs;
+        private double grade_point_average;
+        private int Id;
+        private string login;
 
-        private static string[] channelName = new string[5];
-        private static string[] infoChannel = new string[5];
-        private static int currentChannel;
-        private static bool flag = true;
-
-        public void TV_On()
+        public Stydent()
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("TV On");
-            Console.ResetColor();
-            
-            if (channelName[0] == null)
-            {
-                FillTVSet();
-            }
+            name = "Unknown";
+            kurs = 0;
+            grade_point_average = 0;
+            Id = 0;
+        }
+        public Stydent(string name,int kurs,double grade_point_average)
+        {
+            this.name = name;
+            this.kurs = kurs;
+            this.grade_point_average = grade_point_average;
+        }
+        public Stydent(string name, int kurs, double grade_point_average,int id,string login)
+        {
+            this.name = name;
+            this.kurs = kurs;
+            this.grade_point_average = grade_point_average;
+            this.Id = id;
+            this.login = login;
+
+        }
+
+        public void GetInfo()
+        {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
-            Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
+            Console.Write("Name :   ");
             Console.ResetColor();
-            flag = true;
-
-        }
-        public  void TV_Off()
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("TV Off");
-            Console.ResetColor();
-            flag = false;
-        }
-        public void TV_NextChannel()
-        {
+            Console.Write(name + "\n");
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine("TV Next Channel");
+            Console.Write("ID :   ");
             Console.ResetColor();
-            if (flag == true)
-            {
-                currentChannel = currentChannel + 1;
-                
-                
-                if (currentChannel == 5)
-                {
-                    currentChannel = 0;                    
-                }
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
-                Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
-                Console.ResetColor();
-            }
-            else
-            {
-                Console.WriteLine("WARING - TV OFF!!!");
-            }
-        }
-        public void TV_BackChannel()
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("TV Back Channel");
+            Console.Write(Id + "\n");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("Kurs :   ");
             Console.ResetColor();
-            if (flag == true)
-            {
-                
-                currentChannel = currentChannel - 1;
-                if (currentChannel == -1)
-                {
-                    currentChannel = 4;
-                }
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
-                Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
-                Console.ResetColor();
-            }
-            else
-            {
-                Console.WriteLine("WARING - TV OFF!!!");
-            }
+            Console.Write(kurs + "\n");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("Grade point average :   ");
+            Console.ResetColor();
+            Console.Write(grade_point_average + "\n");
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write("Login :   ");
+            Console.ResetColor();
+            Console.Write(login + "\n\n\n");
         }
-        private static void FillTVSet()
-        {
-            string s;int t = 0;
-            DataTable tableTV = Read_DB();
-            for (int i = 0; i < tableTV.Rows.Count; i++)
-            {
-                s = Convert.ToString(tableTV.Rows[i]["text_data_1"]);
-                if( s.Contains("Channel"))
-                {
-                   channelName[t] = Convert.ToString(tableTV.Rows[i]["text_data_1"]);
-                   infoChannel[t] = Convert.ToString(tableTV.Rows[i]["Comment_text_1"]);
-                    t++;        
-                }
-                
-            }
-            currentChannel = 0;
-        }
-        private static DataTable Read_DB()
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                
-                connection.Open();
-                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
-                DataSet set = new DataSet();
-                adapter.Fill(set);
-                DataTable dt = set.Tables[0];
-                return dt;
-            }
-        }
-        
+
     }
+    
     class Program
     {
         static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
         static string sqlExpression = "SELECT * FROM TEST_lab_tab";
+        static string sqlExpression2 = "SELECT * FROM TEST_lab_tab WHERE text_data_1 LIKE '%Stydent%'";
         //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
         static void Main(string[] args)
         {
-            
-            int d = 1;
-            TVSet tVSet = new TVSet();
-            tVSet.TV_On();
-            while (d!=0)
+            Regex re = new Regex(@"\d+");
+            string a,n;
+            int t = 0,k,u;
+            double g;
+            bool flag = true;
+            List<Stydent> stydents = new List<Stydent>();
+            DataTable table = ReadDT();
+            while (flag == true)
             {
-                Console.WriteLine("TV_On - 1");
-                Console.WriteLine("TV_Off - 2");
-                Console.WriteLine("TV_NextChannel - 3");
-                Console.WriteLine("TV_BackChannel - 4");
-                Console.WriteLine("PowerOff - 0");
-                d = Convert.ToInt32(Console.ReadLine());
-                switch (d)
+                               
+                for (int i = 0; i < table.Rows.Count; i++)
                 {
-                    case 1:
-                        tVSet.TV_On();
-                        break;
-                    case 2:
-                        tVSet.TV_Off();
-                        break;
-                    case 3:
-                        tVSet.TV_NextChannel();
-                        break;
-                    case 4:
-                        tVSet.TV_BackChannel();
-                        break;
-                    case 0:
-                        Console.WriteLine("POWER OFF");
-                        break;
-                    default:
-                        Console.WriteLine("ERROR!");
-                        break;
-
+                    stydents.Add(new Stydent(Convert.ToString(table.Rows[i]["Comment_text_1"]), Convert.ToInt32(table.Rows[i]["int_data_1"]), Convert.ToDouble(table.Rows[i]["float_data_1"]), Convert.ToInt32(table.Rows[i]["Id"]), Convert.ToString(table.Rows[i]["text_data_1"])));
+                    Match m = re.Match((string)table.Rows[i]["text_data_1"]);
+                    
+                    if (m.Success)
+                    {
+                        if(t< Convert.ToInt32(m.Value.ToString()))
+                        {
+                            t = Convert.ToInt32(m.Value.ToString());
+                        }                        
+                    }
                 }
-
+                foreach (var s in stydents)
+                {
+                    s.GetInfo();
+                }
+                Console.WriteLine("Add Stydent press to 'Y'\nExit - 'N'");
+                a = Console.ReadLine();
+                switch (a)
+                {
+                    case "Y":
+                        Console.WriteLine("Name");
+                        n = Console.ReadLine();
+                        Console.WriteLine("Kurs");
+                        k = Convert.ToInt32(Console.ReadLine());
+                        Console.WriteLine("Grade point average");
+                        g = Convert.ToDouble(Console.ReadLine());
+                        u = UpdateDT(n, k, g, t);
+                        stydents.Add(new Stydent(n, k, g, u, String.Format("Stydent_{0}",t+1)));
+                        break;
+                   
+                    case "N":
+                        flag = false;
+                        break;
+                   
+                   
+                }
+                
             }
+            
             Console.ReadKey();
+
+        }
+        static DataTable ReadDT()
+        {
+            using(SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression2, connection);
+                DataSet dataSet = new DataSet();
+                adapter.Fill(dataSet);
+                DataTable dt = dataSet.Tables[0];
+                
+                return dt;
+            }
+        }
+        static int UpdateDT(string name,int kurs, double srB, int t_login)
+        {
+           
+            using(SqlConnection connectionUpd = new SqlConnection(connectionString))
+            {
+                connectionUpd.Open();
+                SqlDataAdapter dataAdapter = new SqlDataAdapter(sqlExpression, connectionUpd);
+                DataSet dataS = new DataSet();
+                dataAdapter.Fill(dataS);
+                DataRow newRow = dataS.Tables[0].NewRow();
+                newRow["text_data_1"] = String.Format("Stydent_{0}",t_login+1);
+                newRow["int_data_1"] = kurs;
+                newRow["float_data_1"] = srB;
+                newRow["Comment_text_1"] = name;
+                dataS.Tables[0].Rows.Add(newRow);
+                SqlCommandBuilder commandBuilder = new SqlCommandBuilder(dataAdapter);
+                dataAdapter.Update(dataS);
+                dataS.Clear();
+              
+                dataAdapter.Fill(dataS);
+                int q = Convert.ToInt32(dataS.Tables[0].Rows[0]["Id"]);
+                for(int w = 0; w < dataS.Tables[0].Rows.Count; w++)
+                {
+                    Console.WriteLine(dataS.Tables[0].Rows[w]["Id"]);
+                    if ((string)dataS.Tables[0].Rows[w]["text_data_1"] == String.Format("Stydent_{0}", t_login + 1))
+                    {
+                        
+                        q = Convert.ToInt32(dataS.Tables[0].Rows[w]["Id"]);
+                    }
+                        
+                }
+                return q;
+
+                
+            }
+            
         }
 
+
+    }
+    class Lab
+    {
+        void lab_db_8()
+        {
+            /*class TVSet
+        {
+            static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            static string sqlExpression = "SELECT * FROM TEST_lab_tab";
+            //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
+
+            private static string[] channelName = new string[5];
+            private static string[] infoChannel = new string[5];
+            private static int currentChannel;
+            private static bool flag = true;
+
+            public void TV_On()
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("TV On");
+                Console.ResetColor();
+
+                if (channelName[0] == null)
+                {
+                    FillTVSet();
+                }
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
+                Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
+                Console.ResetColor();
+                flag = true;
+
+            }
+            public void TV_Off()
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("TV Off");
+                Console.ResetColor();
+                flag = false;
+            }
+            public void TV_NextChannel()
+            {
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine("TV Next Channel");
+                Console.ResetColor();
+                if (flag == true)
+                {
+                    currentChannel = currentChannel + 1;
+
+
+                    if (currentChannel == 5)
+                    {
+                        currentChannel = 0;
+                    }
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
+                    Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.WriteLine("WARING - TV OFF!!!");
+                }
+            }
+            public void TV_BackChannel()
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("TV Back Channel");
+                Console.ResetColor();
+                if (flag == true)
+                {
+
+                    currentChannel = currentChannel - 1;
+                    if (currentChannel == -1)
+                    {
+                        currentChannel = 4;
+                    }
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
+                    Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.WriteLine("WARING - TV OFF!!!");
+                }
+            }
+            private static void FillTVSet()
+            {
+                string s; int t = 0;
+                DataTable tableTV = Read_DB();
+                for (int i = 0; i < tableTV.Rows.Count; i++)
+                {
+                    s = Convert.ToString(tableTV.Rows[i]["text_data_1"]);
+                    if (s.Contains("Channel"))
+                    {
+                        channelName[t] = Convert.ToString(tableTV.Rows[i]["text_data_1"]);
+                        infoChannel[t] = Convert.ToString(tableTV.Rows[i]["Comment_text_1"]);
+                        t++;
+                    }
+
+                }
+                currentChannel = 0;
+            }
+            private static DataTable Read_DB()
+            {
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+
+                    connection.Open();
+                    SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
+                    DataSet set = new DataSet();
+                    adapter.Fill(set);
+                    DataTable dt = set.Tables[0];
+                    return dt;
+                }
+            }
+
+        }
+        class Program
+        {
+            static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            static string sqlExpression = "SELECT * FROM TEST_lab_tab";
+            //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
+            static void Main(string[] args)
+            {
+
+                int d = 1;
+                TVSet tVSet = new TVSet();
+                tVSet.TV_On();
+                while (d != 0)
+                {
+                    Console.WriteLine("TV_On - 1");
+                    Console.WriteLine("TV_Off - 2");
+                    Console.WriteLine("TV_NextChannel - 3");
+                    Console.WriteLine("TV_BackChannel - 4");
+                    Console.WriteLine("PowerOff - 0");
+                    d = Convert.ToInt32(Console.ReadLine());
+                    switch (d)
+                    {
+                        case 1:
+                            tVSet.TV_On();
+                            break;
+                        case 2:
+                            tVSet.TV_Off();
+                            break;
+                        case 3:
+                            tVSet.TV_NextChannel();
+                            break;
+                        case 4:
+                            tVSet.TV_BackChannel();
+                            break;
+                        case 0:
+                            Console.WriteLine("POWER OFF");
+                            break;
+                        default:
+                            Console.WriteLine("ERROR!");
+                            break;
+
+                    }
+
+                }
+                Console.ReadKey();
+            }
+
+
+
+        }*/
+    }// работа с класами и методами класов
         void lab_db_7()
         {
             /*
@@ -515,116 +696,116 @@ namespace Lab_connection_database_1
         } // чтение данных с БД и запись в массив
         void lab_db_2()
         {
-           /* static void Main(string[] args)
-            {
-                string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                string str; int _int = 0; double _double = 0; bool flag1 = false, flag2 = false, flag3 = false;
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    Console.WriteLine(connection.ConnectionString);
-                    Console.WriteLine(connection.Database);
-                    Console.WriteLine(connection.DataSource);
-                    Console.WriteLine(connection.ServerVersion);
-                    Console.WriteLine(connection.State);
-                    Console.WriteLine(connection.WorkstationId);
-                    Console.WriteLine();
-                    string sqlExpressionRead = "SELECT * FROM TEST_lab_tab";
-                    Console.WriteLine("Введите 2а значения для вычесления площади треугольника...");
-                    using (SqlCommand cmd = new SqlCommand(sqlExpressionRead, connection))
-                    {
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.HasRows) // если есть данные
-                            {
-                                while (reader.Read()) // построчно считываем данные
-                                {
-                                    if (reader.GetString(1) == "Sa_triangle")
-                                    {
-                                        flag1 = true;
-                                    }
-                                    if (reader.GetString(1) == "Sb_triangle")
-                                    {
-                                        flag2 = true;
-                                    }
-                                    if (reader.GetString(1) == "S_triangle")
-                                    {
-                                        flag3 = true;
-                                    }
-                                }
-                            }
+            /* static void Main(string[] args)
+             {
+                 string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+                 string str; int _int = 0; double _double = 0; bool flag1 = false, flag2 = false, flag3 = false;
+                 using (SqlConnection connection = new SqlConnection(connectionString))
+                 {
+                     connection.Open();
+                     Console.WriteLine(connection.ConnectionString);
+                     Console.WriteLine(connection.Database);
+                     Console.WriteLine(connection.DataSource);
+                     Console.WriteLine(connection.ServerVersion);
+                     Console.WriteLine(connection.State);
+                     Console.WriteLine(connection.WorkstationId);
+                     Console.WriteLine();
+                     string sqlExpressionRead = "SELECT * FROM TEST_lab_tab";
+                     Console.WriteLine("Введите 2а значения для вычесления площади треугольника...");
+                     using (SqlCommand cmd = new SqlCommand(sqlExpressionRead, connection))
+                     {
+                         using (SqlDataReader reader = cmd.ExecuteReader())
+                         {
+                             if (reader.HasRows) // если есть данные
+                             {
+                                 while (reader.Read()) // построчно считываем данные
+                                 {
+                                     if (reader.GetString(1) == "Sa_triangle")
+                                     {
+                                         flag1 = true;
+                                     }
+                                     if (reader.GetString(1) == "Sb_triangle")
+                                     {
+                                         flag2 = true;
+                                     }
+                                     if (reader.GetString(1) == "S_triangle")
+                                     {
+                                         flag3 = true;
+                                     }
+                                 }
+                             }
 
-                        }
+                         }
 
-                        if (flag1 == false)
-                        {
-                            cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('Sa_triangle',0,0)";
-                            cmd.ExecuteNonQuery();
-                        }
-                        if (flag2 == false)
-                        {
-                            cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('Sb_triangle',0,0)";
-                            cmd.ExecuteNonQuery();
-                        }
-                        if (flag2 == false)
-                        {
-                            cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('S_triangle',0,0)";
-                            cmd.ExecuteNonQuery();
-                        }
+                         if (flag1 == false)
+                         {
+                             cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('Sa_triangle',0,0)";
+                             cmd.ExecuteNonQuery();
+                         }
+                         if (flag2 == false)
+                         {
+                             cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('Sb_triangle',0,0)";
+                             cmd.ExecuteNonQuery();
+                         }
+                         if (flag2 == false)
+                         {
+                             cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('S_triangle',0,0)";
+                             cmd.ExecuteNonQuery();
+                         }
 
-                        Console.WriteLine("Старые значения с БД:");
-                        cmd.CommandText = "SELECT * FROM TEST_lab_tab";
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.HasRows) // если есть данные
-                            {
-                                while (reader.Read()) // построчно считываем данные
-                                {
-                                    if (reader.GetString(1) == "Sa_triangle")
-                                    {
-                                        Console.WriteLine("Старые значениe Sa_triangle: {0}", reader.GetValue(3));
-                                    }
-                                    if (reader.GetString(1) == "Sb_triangle")
-                                    {
-                                        Console.WriteLine("Старые значениe Sb_triangle: {0}", reader.GetValue(3));
-                                    }
-                                    if (reader.GetString(1) == "S_triangle")
-                                    {
-                                        Console.WriteLine("Старые значениe S_triangle: {0}", reader.GetValue(3));
-                                    }
-                                }
-                            }
+                         Console.WriteLine("Старые значения с БД:");
+                         cmd.CommandText = "SELECT * FROM TEST_lab_tab";
+                         using (SqlDataReader reader = cmd.ExecuteReader())
+                         {
+                             if (reader.HasRows) // если есть данные
+                             {
+                                 while (reader.Read()) // построчно считываем данные
+                                 {
+                                     if (reader.GetString(1) == "Sa_triangle")
+                                     {
+                                         Console.WriteLine("Старые значениe Sa_triangle: {0}", reader.GetValue(3));
+                                     }
+                                     if (reader.GetString(1) == "Sb_triangle")
+                                     {
+                                         Console.WriteLine("Старые значениe Sb_triangle: {0}", reader.GetValue(3));
+                                     }
+                                     if (reader.GetString(1) == "S_triangle")
+                                     {
+                                         Console.WriteLine("Старые значениe S_triangle: {0}", reader.GetValue(3));
+                                     }
+                                 }
+                             }
 
-                        }
+                         }
 
-                        double d1 = 0, d2 = 0, d3 = 0;
-                        Console.WriteLine("Введите сторону треугольника, а :");
-                        d1 = Convert.ToDouble(Console.ReadLine());
-                        Console.WriteLine("Введите сторону треугольника, b :");
-                        d2 = Convert.ToDouble(Console.ReadLine());
-                        d3 = (d1 * d2) / 2;
-                        Console.WriteLine("Пдощадь треугольника, S = {0}", d3);
+                         double d1 = 0, d2 = 0, d3 = 0;
+                         Console.WriteLine("Введите сторону треугольника, а :");
+                         d1 = Convert.ToDouble(Console.ReadLine());
+                         Console.WriteLine("Введите сторону треугольника, b :");
+                         d2 = Convert.ToDouble(Console.ReadLine());
+                         d3 = (d1 * d2) / 2;
+                         Console.WriteLine("Пдощадь треугольника, S = {0}", d3);
 
-                        cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd1 WHERE text_data_1 = 'Sa_triangle'";
-                        cmd.Parameters.AddWithValue("@dd1", d1);
-                        cmd.ExecuteNonQuery();
+                         cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd1 WHERE text_data_1 = 'Sa_triangle'";
+                         cmd.Parameters.AddWithValue("@dd1", d1);
+                         cmd.ExecuteNonQuery();
 
-                        cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd2 WHERE text_data_1 = 'Sb_triangle'";
-                        cmd.Parameters.AddWithValue("@dd2", d2);
-                        cmd.ExecuteNonQuery();
+                         cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd2 WHERE text_data_1 = 'Sb_triangle'";
+                         cmd.Parameters.AddWithValue("@dd2", d2);
+                         cmd.ExecuteNonQuery();
 
-                        cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd3 WHERE text_data_1 = 'S_triangle'";
-                        cmd.Parameters.AddWithValue("@dd3", d3);
-                        cmd.ExecuteNonQuery();
+                         cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd3 WHERE text_data_1 = 'S_triangle'";
+                         cmd.Parameters.AddWithValue("@dd3", d3);
+                         cmd.ExecuteNonQuery();
 
-                    }
+                     }
 
-                    Console.WriteLine("");
-                    Console.ReadLine();
-                }
+                     Console.WriteLine("");
+                     Console.ReadLine();
+                 }
 
 
-            }*/
+             }*/
         } // лаба площадь треугольника, чтение-запись-редактирование данных в БД
 
         void lab_db_1()
@@ -693,9 +874,7 @@ namespace Lab_connection_database_1
                      Console.Beep();
                      Console.WriteLine("\tСостояние: {0}", connection.State);
                  }*/
-        } 
-
-
+        }
 
     }
 }
