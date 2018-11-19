@@ -9,119 +9,181 @@ using System.Data.SqlClient;
 using System.Threading.Tasks;
 using System.IO;
 
+
 namespace Lab_connection_database_1
 {
-   
-    class TVBox
+    class War
     {
-        private static string sqlExpression2 = "SELECT Comment_text_1 FROM TEST_lab_tab WHERE text_data_1 LIKE '%Channel%'";
-        private static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-        private static DataTable channelList = ChannelList();
+        public string name { get; set; }
+        public int life { get; set; }
 
-        private bool condition = false;
-        private string current_TV_Channel = "Dark screen";
-        private int volume_value =0;
-        
-
-        public bool TV_Status
+        public War(string name, int life)
         {
-            get
-            {
-                return condition;
-            }
-            set
-            {
-                if(value == condition && condition == false)
-                {
-                    Console.WriteLine("Stupid user, the TV is off");
-                }
-                else if(value !=condition && condition == false)
-                {
-                    condition = value;
-                    Console.WriteLine("TV On");
-                }
-                else if (value == condition && condition == true)
-                {
-                    Console.WriteLine("Stupid user, the TV is on");
-                }
-                else if(value != condition && condition == true)
-                {
-                    condition = value;
-                    Console.WriteLine("TV Off");
-                }
-            }
-        }
-        public int TV_Channel
-        {
-            set
-            {
-                if (condition == true)
-                {
-                    if (value > 0 && value <= channelList.Rows.Count)
-                    {
-                        current_TV_Channel = String.Format("{0}        ID:{1}", channelList.Rows[value - 1]["TV List"], channelList.Rows[value - 1]["ID"]);
-                    }
-                    else { Console.WriteLine("Not correct!"); }
-                }
-                else { Console.WriteLine("Turn on the TV, dork!"); }
-            }
-        }
-        public string InfoChannel
-        {
-            get
-            {
-                if (condition == true)
-                {
-                    Console.WriteLine("Для выбора канаlа введите его номер от 1 до {0}", channelList.Rows.Count);
-                    return current_TV_Channel;
-                }
-                else { return "Turn on the tv, dork!"; }
-                
-            }
-        }
-        public int Volume
-        {
-            get
-            {
-                return volume_value;
-            }
-            set
-            {
-                if (condition==true)
-                {
-                    if (value >= 0 && value <= 100)
-                    {
-                        volume_value = value;
-                    }
-                    else { Console.WriteLine("Error...Press value 0-100"); }
-                }
-                else { Console.WriteLine("Turn off the tv, dork!"); }
-            }
+            this.name = name;
+            this.life = life;
+            Log.AddRow(GetType().Name, "Вызов конструктора класса War");
         }
 
-        private static DataTable ChannelList()
+        public virtual void Damage(int damage)
         {
+            Log.AddRow(GetType().Name, "Вызов виртуального метода Damage - War ");
+        }
+    }   
+    class War_H:War
+    {
+        public War_H(string name,int life) : base(name, life)
+        {
+            Log.AddRow(GetType().Name, "Вызов конструктора класса War_H");
+        }
+        public override void Damage(int damage)
+        {
+            Log.AddRow(GetType().Name, "Вызов виртуального метода Damage - War_H ");
+            if ((damage - 4) > 0)
+            {
+                life = life - (damage - 4);
+                Log.AddRow(GetType().Name, String.Format("{0} с именем {1} нанесено урона {2}, осталось здоровья - {3} ",GetType().Name,name,damage-4,life));
+            }
+            
+            
+        }
+    }
+    class War_L : War
+    {
+        public War_L(string name, int life) : base(name, life)
+        {
+            Log.AddRow(GetType().Name, "Вызов конструктора класса War_L");
+        }
+        public override void Damage(int damage)
+        {
+            Log.AddRow(GetType().Name, "Вызов виртуального метода Damage - War_L ");
+            if ((damage - 2) > 0)
+            {
+                Log.AddRow(GetType().Name, String.Format("{0} с именем {1} нанесено урона {2}, осталось здоровья - {3} ", GetType().Name, name, damage - 4, life));
+                life = life - (damage - 4);
+            }
+        }
+    }
+    class Log
+    {
+        static string connectionString = @"Data Source=.\SQLEXPRESS;Initial Catalog=LogDB; User Id = StupidUserTest; Password = 2046";
+
+        static int index = ReturnIDTable();
+       
+        private static DataTable Table = CreateTableLog(new DataTable());
+        private static DataTable CreateTableLog(DataTable dataTable)
+        {
+            dataTable.TableName = String.Format("LogDB_Table_{0}", index);
+            dataTable.Columns.Add("Id", typeof(Int32));
+            dataTable.Columns["Id"].Unique = true;
+            dataTable.Columns["Id"].AllowDBNull = false;
+            dataTable.Columns["Id"].AutoIncrement = true;
+            dataTable.Columns["Id"].AutoIncrementSeed = 1;
+            dataTable.Columns["Id"].AutoIncrementStep = 1;
+            dataTable.Columns.Add("DateTime", typeof(DateTime));
+            dataTable.Columns.Add("Text_column_1", typeof(String));
+            dataTable.Columns.Add("Text_column_2", typeof(String));
+            return dataTable;
+        }
+        public static void AddRow(string d1, string d2)
+        {
+            DataRow row = Table.NewRow();
+            row["DateTime"] = DateTime.Now;
+            row["Text_column_1"] = d1;
+            row["Text_column_2"] = d2;
+            Table.Rows.Add(row);
+        }
+        public static void Create()
+        {
+
+            CreateDB();
+            string sqlExpression = String.Format("SELECT * FROM {0}", CreatingTables(index));
             using(SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                DataTable tableTV = new DataTable();
-                tableTV.Columns.Add("ID", typeof(Int32));
-                tableTV.Columns.Add("TV List", typeof(String));
-                tableTV.Columns["ID"].Unique = true;
-                tableTV.Columns["ID"].AutoIncrement = true;
-                SqlCommand cmd = new SqlCommand(sqlExpression2, connection);
-                SqlDataReader reader = cmd.ExecuteReader();
-                if (reader.HasRows)
+                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
+                SqlCommandBuilder builder = new SqlCommandBuilder(adapter);
+                adapter.Update(Table);
+
+
+            }
+
+        }
+        static void CreateDB()
+        {
+            bool flagDB = false;
+            string conStr = @"Data Source=.\SQLEXPRESS;Initial Catalog=master; User Id=StupidUserTest;Password=2046";
+            string sqlExpressionNameDB = "SELECT name FROM sys.databases";
+            string nameDB = "LogDB";
+            using (SqlConnection connection = new SqlConnection(conStr))
+            {
+                connection.Open();
+                SqlCommand cmd = new SqlCommand(sqlExpressionNameDB, connection);
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    int i = 0;
                     while (reader.Read())
                     {
-                        tableTV.Rows.Add(i, reader.GetString(0));
-                        i++;
+                        if (nameDB == reader[0].ToString())
+                        {
+                            flagDB = true;
+                        }
+                    }
+                }//проверяем существует ли БД с нужным именем
+
+                if (flagDB == false)
+                {
+                    cmd.CommandText = String.Format("CREATE DATABASE {0}", nameDB);
+                    cmd.ExecuteNonQuery();
+                }
+
+            }
+        }//проверка существует ли БД, если нет то создаем
+        static int ReturnIDTable()
+        {
+            Regex re = new Regex(@"\d+");
+            int rez = 0;
+            List<string> tableList = new List<string>();
+            string conStr = @"Data Source=.\SQLEXPRESS;Initial Catalog=master; User Id=StupidUserTest;Password=2046";
+            string sqlExpInfoDB = "SELECT TABLE_NAME FROM LogDB.information_schema.tables";
+            using (SqlConnection connection = new SqlConnection(conStr))
+            {
+                connection.Open();
+                SqlCommand cmd = new SqlCommand(sqlExpInfoDB, connection);
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        Match m = re.Match(Convert.ToString(reader[0]));
+                        tableList.Add(Convert.ToString(m));
+
                     }
                 }
-                return tableTV;
-            }            
+                foreach (string s in tableList)
+                {
+                    if (string.IsNullOrEmpty(s))
+                    {
+                        rez = 0;
+                    }
+                    else if (rez < Convert.ToInt32(s))
+                    {
+                        rez = Convert.ToInt32(s);
+                    }
+                }
+
+            }
+            return rez;
+        }//поиск максимального числового значения в названии таблиц
+        static string CreatingTables(int id)
+        {
+            id = id + 1;
+            string cmdText = String.Format("CREATE TABLE LogDB_Table_{0} (Id int IDENTITY(1,1) PRIMARY KEY, DateTime datetime2, Text_column_1 text NULL, Text_column_2 text NULL) ", id);
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                SqlCommand cmd = new SqlCommand(cmdText, connection);
+                cmd.ExecuteNonQuery();
+            }
+
+            return String.Format("LogDB_Table_{0}", id);
         }
     }
     class Program
@@ -131,934 +193,74 @@ namespace Lab_connection_database_1
         //static string sqlExpression2 = "SELECT * FROM TEST_lab_tab WHERE text_data_1 LIKE '%Channel%'";
         //static string sqlExp = "SELECT * FROM TEST_lab_tab WHERE text_data_1='Stydent_5'";
         //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
+        
         static void Main(string[] args)
         {
-            Console.WriteLine("TV Box");
-            TVBox tv = new TVBox();
-            bool flag = true;int t = 0;
+            bool flag = true;
+            List<War> wars = new List<War>();
+            int t = 0, t1 = 0, buf_int=0,damage = 0;
+            string buf_str = "";
             while(flag == true)
             {
-                if (tv.TV_Status == true)
-                {
-                    Console.WriteLine("TV STATUS - TV ON");
-                }
-                else
-                {
-                    Console.WriteLine("TV STATUS - TV OFF");
-                }
-                Console.WriteLine("Выберете действие:");
-                Console.WriteLine("1 - Включить телевизор");
-                Console.WriteLine("2 - Выбрать уровень громкости");
-                Console.WriteLine("3 - Выбрать канал");
-                Console.WriteLine("4 - Выключиь телевизор");
-                Console.WriteLine("5 - Завершение программы");
+                Console.WriteLine("1-добавить воина");
+                Console.WriteLine("2-нанести всем урон");
+                Console.WriteLine("3-выход");
+                t = 0;
                 t = Convert.ToInt32(Console.ReadLine());
-
                 switch (t)
                 {
                     case 1:
-                        tv.TV_Status = true;
-                        Console.WriteLine(tv.InfoChannel);
+                        Console.WriteLine("Введите Имя:");
+                        buf_str = Console.ReadLine();
+                        Console.WriteLine("Введите к-во ХэПэ:");
+                        buf_int = Convert.ToInt32(Console.ReadLine());
+                        Console.WriteLine("Введите тип брони воина: \n1 - котелок на голове\n2 - друшляк на пузе ");
+                        t1 = 0;
+                        t1 = Convert.ToInt32(Console.ReadLine());
+                        if (t1 == 1)
+                        {
+                            wars.Add(new War_H(buf_str, buf_int));
+                        }
+                        else if (t1 == 2)
+                        {
+                            wars.Add(new War_L(buf_str, buf_int));
+                        }
+                        else { Console.WriteLine("error"); }
                         break;
                     case 2:
-                        Console.WriteLine("Введите уровень громкости от 0 до 100:");
-                        tv.Volume = Convert.ToInt32(Console.ReadLine());
-                        break;
-                    case 3:
-                        Console.WriteLine("______________________________________________________________");
-                        Console.WriteLine("Введите номер канала:");
-                        tv.TV_Channel = Convert.ToInt32(Console.ReadLine());
-                        Console.WriteLine(tv.InfoChannel);
-                        break;
-                    case 4:
-                        tv.TV_Status = false;
-                        Console.WriteLine(tv.InfoChannel);
-                        break;
-                    case 5:
-                        flag = false;
-                        break;
-                    default:
-                        Console.WriteLine("Error");
-                        break;
-                }
-            }
-            
-            Console.ReadKey();
-
-        }
-        
-
-
-    }
-    class Lab
-    {
-        void lab_db_9()
-        {
-            /*
-    class Stydent
-    {
-        private string name;
-        private int kurs;
-        private double grade_point_average;
-        private int Id;
-        private string login;
-
-        public Stydent()
-        {
-            name = "Unknown";
-            kurs = 0;
-            grade_point_average = 0;
-            Id = 0;
-        }
-        public Stydent(string name,int kurs,double grade_point_average)
-        {
-            this.name = name;
-            this.kurs = kurs;
-            this.grade_point_average = grade_point_average;
-        }
-        public Stydent(string name, int kurs, double grade_point_average,int id,string login)
-        {
-            this.name = name;
-            this.kurs = kurs;
-            this.grade_point_average = grade_point_average;
-            this.Id = id;
-            this.login = login;
-
-        }
-
-        public void GetInfo()
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("Name :   ");
-            Console.ResetColor();
-            Console.Write(name + "\n");
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.Write("ID :   ");
-            Console.ResetColor();
-            Console.Write(Id + "\n");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("Kurs :   ");
-            Console.ResetColor();
-            Console.Write(kurs + "\n");
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("Grade point average :   ");
-            Console.ResetColor();
-            Console.Write(grade_point_average + "\n");
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.Write("Login :   ");
-            Console.ResetColor();
-            Console.Write(login + "\n\n\n");
-        }
-
-    }
-    
-    class Program
-    {
-        static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-        static string sqlExpression = "SELECT * FROM TEST_lab_tab";
-        static string sqlExpression2 = "SELECT * FROM TEST_lab_tab WHERE text_data_1 LIKE '%Stydent%'";
-        //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
-        static void Main(string[] args)
-        {
-            Regex re = new Regex(@"\d+");
-            string a,n;
-            int t = 0,k,u;
-            double g;
-            bool flag = true;
-            List<Stydent> stydents = new List<Stydent>();
-            DataTable table = ReadDT();
-            while (flag == true)
-            {
-                               
-                for (int i = 0; i < table.Rows.Count; i++)
-                {
-                    stydents.Add(new Stydent(Convert.ToString(table.Rows[i]["Comment_text_1"]), Convert.ToInt32(table.Rows[i]["int_data_1"]), Convert.ToDouble(table.Rows[i]["float_data_1"]), Convert.ToInt32(table.Rows[i]["Id"]), Convert.ToString(table.Rows[i]["text_data_1"])));
-                    Match m = re.Match((string)table.Rows[i]["text_data_1"]);
-                    
-                    if (m.Success)
-                    {
-                        if(t< Convert.ToInt32(m.Value.ToString()))
+                        damage = 0;
+                        Console.WriteLine("Введите урон:");
+                        damage = Convert.ToInt32(Console.ReadLine());
+                        foreach(War war in wars)
                         {
-                            t = Convert.ToInt32(m.Value.ToString());
-                        }                        
-                    }
-                }
-                foreach (var s in stydents)
-                {
-                    s.GetInfo();
-                }
-                Console.WriteLine("Add Stydent press to 'Y'\nExit - 'N'");
-                a = Console.ReadLine();
-                switch (a)
-                {
-                    case "Y":
-                        Console.WriteLine("Name");
-                        n = Console.ReadLine();
-                        Console.WriteLine("Kurs");
-                        k = Convert.ToInt32(Console.ReadLine());
-                        Console.WriteLine("Grade point average");
-                        g = Convert.ToDouble(Console.ReadLine());
-                        u = UpdateDT(n, k, g, t);
-                        stydents.Add(new Stydent(n, k, g, u, String.Format("Stydent_{0}",t+1)));
-                        break;
-                   
-                    case "N":
-                        flag = false;
-                        break;
-                   
-                   
-                }
-                
-            }
-            
-            Console.ReadKey();
-
-        }
-        static DataTable ReadDT()
-        {
-            using(SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression2, connection);
-                DataSet dataSet = new DataSet();
-                adapter.Fill(dataSet);
-                DataTable dt = dataSet.Tables[0];
-                
-                return dt;
-            }
-        }
-        static int UpdateDT(string name,int kurs, double srB, int t_login)
-        {
-           
-            using(SqlConnection connectionUpd = new SqlConnection(connectionString))
-            {
-                connectionUpd.Open();
-                SqlDataAdapter dataAdapter = new SqlDataAdapter(sqlExpression, connectionUpd);
-                DataSet dataS = new DataSet();
-                dataAdapter.Fill(dataS);
-                DataRow newRow = dataS.Tables[0].NewRow();
-                newRow["text_data_1"] = String.Format("Stydent_{0}",t_login+1);
-                newRow["int_data_1"] = kurs;
-                newRow["float_data_1"] = srB;
-                newRow["Comment_text_1"] = name;
-                dataS.Tables[0].Rows.Add(newRow);
-                SqlCommandBuilder commandBuilder = new SqlCommandBuilder(dataAdapter);
-                dataAdapter.Update(dataS);
-                dataS.Clear();
-              
-                dataAdapter.Fill(dataS);
-                int q = Convert.ToInt32(dataS.Tables[0].Rows[0]["Id"]);
-                for(int w = 0; w < dataS.Tables[0].Rows.Count; w++)
-                {
-                    Console.WriteLine(dataS.Tables[0].Rows[w]["Id"]);
-                    if ((string)dataS.Tables[0].Rows[w]["text_data_1"] == String.Format("Stydent_{0}", t_login + 1))
-                    {
-                        
-                        q = Convert.ToInt32(dataS.Tables[0].Rows[w]["Id"]);
-                    }
-                        
-                }
-                return q;
-
-                
-            }
-            
-        }
-
-
-    }
-            */
-        }// конструкторы классов
-        void lab_db_8()
-        {
-            /*class TVSet
-        {
-            static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-            static string sqlExpression = "SELECT * FROM TEST_lab_tab";
-            //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
-
-            private static string[] channelName = new string[5];
-            private static string[] infoChannel = new string[5];
-            private static int currentChannel;
-            private static bool flag = true;
-
-            public void TV_On()
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("TV On");
-                Console.ResetColor();
-
-                if (channelName[0] == null)
-                {
-                    FillTVSet();
-                }
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
-                Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
-                Console.ResetColor();
-                flag = true;
-
-            }
-            public void TV_Off()
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("TV Off");
-                Console.ResetColor();
-                flag = false;
-            }
-            public void TV_NextChannel()
-            {
-                Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine("TV Next Channel");
-                Console.ResetColor();
-                if (flag == true)
-                {
-                    currentChannel = currentChannel + 1;
-
-
-                    if (currentChannel == 5)
-                    {
-                        currentChannel = 0;
-                    }
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
-                    Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
-                    Console.ResetColor();
-                }
-                else
-                {
-                    Console.WriteLine("WARING - TV OFF!!!");
-                }
-            }
-            public void TV_BackChannel()
-            {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("TV Back Channel");
-                Console.ResetColor();
-                if (flag == true)
-                {
-
-                    currentChannel = currentChannel - 1;
-                    if (currentChannel == -1)
-                    {
-                        currentChannel = 4;
-                    }
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Текущий канал:  {0}", channelName[currentChannel]);
-                    Console.WriteLine("Описание канала:  {0}", infoChannel[currentChannel]);
-                    Console.ResetColor();
-                }
-                else
-                {
-                    Console.WriteLine("WARING - TV OFF!!!");
-                }
-            }
-            private static void FillTVSet()
-            {
-                string s; int t = 0;
-                DataTable tableTV = Read_DB();
-                for (int i = 0; i < tableTV.Rows.Count; i++)
-                {
-                    s = Convert.ToString(tableTV.Rows[i]["text_data_1"]);
-                    if (s.Contains("Channel"))
-                    {
-                        channelName[t] = Convert.ToString(tableTV.Rows[i]["text_data_1"]);
-                        infoChannel[t] = Convert.ToString(tableTV.Rows[i]["Comment_text_1"]);
-                        t++;
-                    }
-
-                }
-                currentChannel = 0;
-            }
-            private static DataTable Read_DB()
-            {
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-
-                    connection.Open();
-                    SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
-                    DataSet set = new DataSet();
-                    adapter.Fill(set);
-                    DataTable dt = set.Tables[0];
-                    return dt;
-                }
-            }
-
-        }
-        class Program
-        {
-            static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-            static string sqlExpression = "SELECT * FROM TEST_lab_tab";
-            //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
-            static void Main(string[] args)
-            {
-
-                int d = 1;
-                TVSet tVSet = new TVSet();
-                tVSet.TV_On();
-                while (d != 0)
-                {
-                    Console.WriteLine("TV_On - 1");
-                    Console.WriteLine("TV_Off - 2");
-                    Console.WriteLine("TV_NextChannel - 3");
-                    Console.WriteLine("TV_BackChannel - 4");
-                    Console.WriteLine("PowerOff - 0");
-                    d = Convert.ToInt32(Console.ReadLine());
-                    switch (d)
-                    {
-                        case 1:
-                            tVSet.TV_On();
-                            break;
-                        case 2:
-                            tVSet.TV_Off();
-                            break;
-                        case 3:
-                            tVSet.TV_NextChannel();
-                            break;
-                        case 4:
-                            tVSet.TV_BackChannel();
-                            break;
-                        case 0:
-                            Console.WriteLine("POWER OFF");
-                            break;
-                        default:
-                            Console.WriteLine("ERROR!");
-                            break;
-
-                    }
-
-                }
-                Console.ReadKey();
-            }
-
-
-
-        }*/
-    }// работа с класами и методами класов
-        void lab_db_7()
-        {
-            /*
-        static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-        static string sqlExpression = "SELECT * FROM TEST_lab_tab";
-        //connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Test_lab; User Id = StupidUserTest; Password = 2046"
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Назови файл: ");
-            string fileName = Console.ReadLine();
-            CreateFile(fileName);
-            Console.ReadKey();
-
-        }
-        static void CreateFile(string nameFile)
-        {
-            string route = String.Format("C:\\{0}.txt", nameFile);
-            FileStream file1 = new FileStream(route, FileMode.Create);
-            using (StreamWriter writer = new StreamWriter(file1))
-            {
-                DataTable table = ReadDB();
-                for (int i = 0; i < table.Rows.Count; i++)
-                {
-                    for (int j = 0; j < table.Columns.Count; j++)
-                    {
-                        writer.Write(table.Rows[i][j] + "  ");
-                    }
-                    writer.WriteLine();
-                }
-                Console.WriteLine("gotovo blet");
-            }
-        }
-        static DataTable ReadDB()
-        {
-            using(SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
-                DataSet set = new DataSet();
-                adapter.Fill(set);
-                DataTable dt = set.Tables[0];
-                return dt;
-            }
-            
-        }*/
-        }// работа с фалами (перенос значений с бд в тхт-файл)
-        void lab_db_6()
-        {
-            /*
-              static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-        static string sqlExpression = "SELECT * FROM TEST_lab_tab";
-
-        static void Main(string[] args)
-        {
-            string big_text;
-            string zamena,text_s_bd;
-            string kill_slovo;
-            int pos1, pos2;
-            Console.WriteLine("Введите текст:");
-            big_text = Console.ReadLine();
-            Add_to_DB(big_text);
-            text_s_bd = Read_DB();
-            Console.WriteLine(text_s_bd);
-            Console.WriteLine("Введите слово которое необходимо заменить:");
-            kill_slovo = Console.ReadLine();
-            Console.WriteLine("Введите слово на которое необходимо заменить:");
-            zamena = Console.ReadLine();
-            big_text = Zamena(text_s_bd, kill_slovo, zamena);
-            Console.WriteLine(big_text);
-            Console.WriteLine();
-            Console.WriteLine("Введите позицию первого элемента строки после которого текст не будет обрезан:");
-            pos1 = Convert.ToInt32(Console.ReadLine());
-            Console.WriteLine("Введите позицию символа которым будет заканчиваться текст:");
-            pos2 = Convert.ToInt32(Console.ReadLine());
-            Add_to_DB(Obrez(big_text, pos1, pos2));
-            Console.WriteLine("Result:  {0}", Read_DB());
-            Console.ReadKey();
-
-        }
-        public static void Add_to_DB(string text)
-        {
-            string text_data_1 = "lab6";
-            bool flag1 = false;
-            using(SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
-                DataSet dataSet = new DataSet();
-                adapter.Fill(dataSet);
-
-
-                for(int i =0; i < dataSet.Tables[0].Rows.Count; i++)
-                {
-                    DataRow dataRow = dataSet.Tables[0].Rows[i];
-                    if (dataRow.Field<string>(1) == text_data_1)
-                    {
-                        flag1 = true;
-                    }
-                }
-
-                if(flag1 == true)
-                {
-                    for(int j = 0; j<dataSet.Tables[0].Rows.Count; j++)
-                    {
-                        DataRow dataRow1 = dataSet.Tables[0].Rows[j];
-                        if (dataRow1.Field<string>(1) == text_data_1)
-                        {
-                            dataRow1["Comment_text_1"] = text;
-                        }
-                    }
-                }
-                else
-                {
-                    DataRow newRow = dataSet.Tables[0].NewRow();
-                    newRow["text_data_1"] = text_data_1;
-                    newRow["int_data_1"] = 0;
-                    newRow["float_data_1"] = 0;
-                    newRow["Comment_text_1"] = text;
-                    dataSet.Tables[0].Rows.Add(newRow);
-
-                }
-                SqlCommandBuilder commandBuilder = new SqlCommandBuilder(adapter);
-                adapter.Update(dataSet);
-                dataSet.Clear();
-            }
-        }//добавление текста в ечейку БД
-        public static string Read_DB()
-        {
-            string result = null;
-            string text_data_1_1 = "lab6";
-            using(SqlConnection connectionRead = new SqlConnection(connectionString))
-            {
-                connectionRead.Open();
-                SqlDataAdapter dataAdapter = new SqlDataAdapter(sqlExpression, connectionRead);
-                DataSet set = new DataSet();
-                dataAdapter.Fill(set);
-
-                for(int u = 0; u < set.Tables[0].Rows.Count; u++)
-                {
-                    if (set.Tables[0].Rows[u].Field<string>(1) == text_data_1_1)
-                    {
-                        result = (string)set.Tables[0].Rows[u]["Comment_text_1"];
-                        break;
-                    }
-                    else { result = "Error. Not found data in DB"; }
-                }
-                return result;
-
-            }            
-        }//чтение нужного значения с БД
-        public static string Zamena(string text_z, string slovo_kill, string slovo_zamena)
-        {
-            string s = text_z;
-            return s.Replace(slovo_kill, slovo_zamena);
-
-        }//замена слова в тексте
-        public static string Obrez(string sl, int position1, int position2)
-        {
-                            
-            return sl.Remove(position2).Substring(position1); 
-        }//обрезание теста
-             */
-        }// работа из строками
-        void lab_db_5()
-        {
-            /*
-             static void Main(string[] args)
-        {
-
-            string sqlExpression = "SELECT * FROM TEST_lab_tab";
-            using(SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlDataAdapter adapter = new SqlDataAdapter(sqlExpression, connection);
-                DataSet ds = new DataSet();
-                adapter.Fill(ds);
-
-                DataTable dt = ds.Tables[0];
-                DataRow newRow = dt.NewRow();
-                newRow["text_data_1"] = "Test_dataAdapter_builder";
-                newRow["int_data_1"] = 1488;
-                newRow["float_data_1"] = 3.14;
-                dt.Rows.Add(newRow);
-
-                // создаем объект SqlCommandBuilder
-                SqlCommandBuilder commandBuilder = new SqlCommandBuilder(adapter);
-                adapter.Update(ds);
-                // альтернативный способ - обновление только одной таблицы
-                //adapter.Update(dt);
-                // заново получаем данные из бд
-                // очищаем полностью DataSet
-                ds.Clear();
-                // перезагружаем данные
-                adapter.Fill(ds);
-
-                foreach (DataColumn column in dt.Columns)
-                    Console.Write("\t{0}", column.ColumnName);
-                Console.WriteLine();
-                // перебор всех строк таблицы
-                foreach (DataRow row in dt.Rows)
-                {
-                    // получаем все ячейки строки
-                    var cells = row.ItemArray;
-                    foreach (object cell in cells)
-                        Console.Write("\t{0}", cell);
-                    Console.WriteLine();
-                  
-                    
-
-                }
-        
-            }
-            Console.ReadLine();
-        }
-             */
-        }
-        void lab_db_4()
-        {
-            /*
-             static void Main(string[] args)
-        {
-=======
->>>>>>> Stashed changes
-            string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-            string sqlExpression = "SELECT * FROM TEST_lab_tab";
-            string str1, str2,str3;
-            string name_str0=" ", name_str1, name_str2, name_str3;
-            string type_db0, type_db1, type_db2, type_db3;
-            using(SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand cmd = new SqlCommand(sqlExpression, connection))
-                {
-                    using(SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                        {
-                            name_str0 = (string)reader.GetName(0);
-                            name_str1 = Convert.ToString(reader.GetName(1));
-                            name_str2 = Convert.ToString(reader.GetName(2));
-                            name_str3 = Convert.ToString(reader.GetName(3));
-                            type_db0 = reader.GetDataTypeName(0);
-                            type_db1 = reader.GetDataTypeName(1);
-                            type_db2 = reader.GetDataTypeName(2);
-                            type_db3 = reader.GetDataTypeName(3);
-                            Console.WriteLine("{0}\t{1}\t{2}\t{3}", name_str0, reader.GetName(1), reader.GetName(2), reader.GetName(3));
-                            Console.WriteLine("{0}\t{1}\t{2}\t\t{3}", reader.GetDataTypeName(0), reader.GetDataTypeName(1), reader.GetDataTypeName(2), reader.GetDataTypeName(3));
-
-                            while (reader.Read())
+                            if (war.life > 0)
                             {
-                                Console.WriteLine("{0}\t{1}\t\t{2}\t\t{3}", reader.GetValue(0), reader.GetValue(1), reader.GetValue(2), reader.GetValue(3));
-                                
-                            }
-                        }
-                    }
-
-                    
-                }
-
-            }
-            Console.WriteLine("Введите название в столбца в котором нужно изменить значение (кроме поля Id): ");
-            str1 = Console.ReadLine();
-            Console.WriteLine("Введите значение которое необходимо заменить на новое: ");
-            str2 = Console.ReadLine();
-            Console.WriteLine("Введите новое значение: ");
-            str3 = Console.ReadLine();
-            //cmd
-            Replace(connectionString, str1, str2, str3);
-
-            Console.ReadLine();
-        }
-        static void Replace(string connectionStr,string n_str,string z_str,string new_str)
-        {
-            
-            using(SqlConnection conn_upate = new SqlConnection(connectionStr))
-            {
-                conn_upate.Open();
-                using(SqlCommand cmd2 = new SqlCommand("UPDATE TEST_lab_tab SET text_data_1 = @New_str WHERE text_data_1 = @z_str", conn_upate))
-                {
-                    Console.WriteLine(n_str + "  " + z_str + "  " + new_str);
-                    cmd2.Parameters.AddWithValue("@N_str", n_str);
-                    cmd2.Parameters.AddWithValue("@New_str", new_str);
-                    cmd2.Parameters.AddWithValue("@z_str", z_str);
-                    cmd2.CommandText = "UPDATE TEST_lab_tab SET text_data_1 = @New_str WHERE text_data_1 = @z_str";
-                    int number = cmd2.ExecuteNonQuery();
-                    Console.WriteLine("Добавлено объектов: {0}", number);
-                }
-            }
-
-        }
-        
-        void lab_db_3()
-        {/*
-            static void Main(string[] args)
-            {
-                string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                string sqlExpression = "SELECT COUNT(*) FROM TEST_lab_tab";
-                int count = 0;
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (SqlCommand cmd = new SqlCommand(sqlExpression, connection))
-                    {
-                        count = Convert.ToInt32(cmd.ExecuteScalar());
-                        string[,] str_mas = new string[count, 4];
-                        int i = -1;
-
-                        cmd.CommandText = "SELECT * FROM TEST_lab_tab";
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.HasRows)
-                            {
-                                while (reader.Read())
+                                war.Damage(damage);
+                                if (war.life <= 0)
                                 {
-                                    i++;
-                                    str_mas[i, 0] = Convert.ToString(reader.GetValue(0));
-                                    str_mas[i, 1] = Convert.ToString(reader.GetValue(1));
-                                    str_mas[i, 2] = Convert.ToString(reader.GetValue(2));
-                                    str_mas[i, 3] = Convert.ToString(reader.GetValue(3));
-
+                                    Log.AddRow("Program", String.Format("{0} был убит", war.name));
                                 }
                             }
+                            else
+                            {
+                                Console.WriteLine(war.name + "мертв!");
+                            }
                         }
-                        for (int u = 0; u < count; u++)
-                        {
-                            Console.WriteLine("{0}\t{1}\t{2}\t{3}", str_mas[u, 0], str_mas[u, 1], str_mas[u, 2], str_mas[u, 3]);
-                        }
-
-                    }
-
-
-
-
+                        break;
+                    case 3:
+                        flag = false;
+                        Log.Create();
+                        break;
+                    default:
+                        Console.WriteLine("ERROR");
+                        break;
                 }
+            }
+            Console.ReadKey();
 
-
-
-
-                Console.WriteLine(count);
-                Console.ReadLine();
-            }*/
-        } // чтение данных с БД и запись в массив
-        void lab_db_2()
-        {
-            /* static void Main(string[] args)
-             {
-                 string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                 string str; int _int = 0; double _double = 0; bool flag1 = false, flag2 = false, flag3 = false;
-                 using (SqlConnection connection = new SqlConnection(connectionString))
-                 {
-                     connection.Open();
-                     Console.WriteLine(connection.ConnectionString);
-                     Console.WriteLine(connection.Database);
-                     Console.WriteLine(connection.DataSource);
-                     Console.WriteLine(connection.ServerVersion);
-                     Console.WriteLine(connection.State);
-                     Console.WriteLine(connection.WorkstationId);
-                     Console.WriteLine();
-                     string sqlExpressionRead = "SELECT * FROM TEST_lab_tab";
-                     Console.WriteLine("Введите 2а значения для вычесления площади треугольника...");
-                     using (SqlCommand cmd = new SqlCommand(sqlExpressionRead, connection))
-                     {
-                         using (SqlDataReader reader = cmd.ExecuteReader())
-                         {
-                             if (reader.HasRows) // если есть данные
-                             {
-                                 while (reader.Read()) // построчно считываем данные
-                                 {
-                                     if (reader.GetString(1) == "Sa_triangle")
-                                     {
-                                         flag1 = true;
-                                     }
-                                     if (reader.GetString(1) == "Sb_triangle")
-                                     {
-                                         flag2 = true;
-                                     }
-                                     if (reader.GetString(1) == "S_triangle")
-                                     {
-                                         flag3 = true;
-                                     }
-                                 }
-                             }
-
-                         }
-
-                         if (flag1 == false)
-                         {
-                             cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('Sa_triangle',0,0)";
-                             cmd.ExecuteNonQuery();
-                         }
-                         if (flag2 == false)
-                         {
-                             cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('Sb_triangle',0,0)";
-                             cmd.ExecuteNonQuery();
-                         }
-                         if (flag2 == false)
-                         {
-                             cmd.CommandText = "INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('S_triangle',0,0)";
-                             cmd.ExecuteNonQuery();
-                         }
-
-                         Console.WriteLine("Старые значения с БД:");
-                         cmd.CommandText = "SELECT * FROM TEST_lab_tab";
-                         using (SqlDataReader reader = cmd.ExecuteReader())
-                         {
-                             if (reader.HasRows) // если есть данные
-                             {
-                                 while (reader.Read()) // построчно считываем данные
-                                 {
-                                     if (reader.GetString(1) == "Sa_triangle")
-                                     {
-                                         Console.WriteLine("Старые значениe Sa_triangle: {0}", reader.GetValue(3));
-                                     }
-                                     if (reader.GetString(1) == "Sb_triangle")
-                                     {
-                                         Console.WriteLine("Старые значениe Sb_triangle: {0}", reader.GetValue(3));
-                                     }
-                                     if (reader.GetString(1) == "S_triangle")
-                                     {
-                                         Console.WriteLine("Старые значениe S_triangle: {0}", reader.GetValue(3));
-                                     }
-                                 }
-                             }
-
-                         }
-
-                         double d1 = 0, d2 = 0, d3 = 0;
-                         Console.WriteLine("Введите сторону треугольника, а :");
-                         d1 = Convert.ToDouble(Console.ReadLine());
-                         Console.WriteLine("Введите сторону треугольника, b :");
-                         d2 = Convert.ToDouble(Console.ReadLine());
-                         d3 = (d1 * d2) / 2;
-                         Console.WriteLine("Пдощадь треугольника, S = {0}", d3);
-
-                         cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd1 WHERE text_data_1 = 'Sa_triangle'";
-                         cmd.Parameters.AddWithValue("@dd1", d1);
-                         cmd.ExecuteNonQuery();
-
-                         cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd2 WHERE text_data_1 = 'Sb_triangle'";
-                         cmd.Parameters.AddWithValue("@dd2", d2);
-                         cmd.ExecuteNonQuery();
-
-                         cmd.CommandText = "UPDATE TEST_lab_tab SET float_data_1 = @dd3 WHERE text_data_1 = 'S_triangle'";
-                         cmd.Parameters.AddWithValue("@dd3", d3);
-                         cmd.ExecuteNonQuery();
-
-                     }
-
-                     Console.WriteLine("");
-                     Console.ReadLine();
-                 }
-
-
-             }*/
-        } // лаба площадь треугольника, чтение-запись-редактирование данных в БД
-
-        void lab_db_1()
-        {
-            /* using (SqlConnection connection = new SqlConnection(connectionString))
-             { 
-                 try
-                 {
-                     connection.Open();
-                     Console.WriteLine(" Connetion Open... ");
-                     Console.WriteLine(connection.State);
-                     Console.WriteLine("\tСтрока подключения: {0}", connection.ConnectionString);
-                     Console.WriteLine("\tБаза данных: {0}", connection.Database);
-                     Console.WriteLine("\tСервер: {0}", connection.DataSource);
-                     Console.WriteLine("\tВерсия сервера: {0}", connection.ServerVersion);
-                     Console.WriteLine("\tСостояние: {0}", connection.State);
-                     Console.WriteLine("\tWorkstationId: {0}", connection.WorkstationId);
-
-                     /*Console.WriteLine("float:");
-                     f = double.Parse(Console.ReadLine());
-                     Console.WriteLine("_____"+f);
-                     SqlCommand command = new SqlCommand("UPDATE TEST_lab_tab SET float_data_1 = @float WHERE text_data_1 = 'test5'",connection);
-                     command.Parameters.AddWithValue("@float", f);
-                     int number = command.ExecuteNonQuery();
-                     Console.WriteLine("Добавлено объектов: {0}", number);
-                     string text_data_1;
-                     int int_data_1 = 0;
-                     double float_data_1 = 0;
-
-                     Console.WriteLine("Введите значение text_data_1 для добавления: ");
-                     text_data_1 = Console.ReadLine();
-                     Console.WriteLine("Введите значение int_data_1 для добавления: ");
-                     int_data_1 = Convert.ToInt32(Console.ReadLine());
-                     Console.WriteLine("Введите значение float_data_1 для добавления: ");
-                     float_data_1 = double.Parse(Console.ReadLine());
-
-                     string sqlExpression = String.Format("INSERT INTO TEST_lab_tab (text_data_1,int_data_1,float_data_1) VALUES ('{0}',{1},@float_2)", text_data_1, int_data_1);
-                     SqlCommand cmd = new SqlCommand(sqlExpression, connection);
-                     cmd.Parameters.AddWithValue("@float_2", float_data_1);
-                     int number = cmd.ExecuteNonQuery();
-
-                     Console.WriteLine("Добавлено объектов: {0}", number);
-
-                     Console.WriteLine("Обновление|изменение значения...");
-                     Console.WriteLine("Строковое значение-ключ для изменения:");
-                     text_data_1 = Console.ReadLine();
-                     cmd.Parameters.AddWithValue("@text_1", text_data_1);
-                     Console.WriteLine("Введите данные на изменение ИНТ: ");
-                     int_data_1 = Convert.ToInt32(Console.ReadLine());
-                     cmd.Parameters.AddWithValue("@int_1", int_data_1);
-                     Console.WriteLine("Введите данные на изменение ФЛОТ: ");
-                     float_data_1 = double.Parse(Console.ReadLine());
-                     cmd.Parameters.AddWithValue("@float_1", float_data_1);
-                     cmd.CommandText = "UPDATE TEST_lab_tab SET int_data_1 = @int_1, float_data_1 = @float_1 WHERE text_data_1 = @text_1";
-                     number = cmd.ExecuteNonQuery();
-                     Console.WriteLine("update объектов: {0}", number);
-                 }
-                 catch (SqlException ex)
-                 {
-                     Console.WriteLine(ex);
-                 }
-                 finally
-                 {
-                     connection.Close();
-                     Console.WriteLine("Connection Close... ");
-                     Console.Beep();
-                     Console.WriteLine("\tСостояние: {0}", connection.State);
-                 }*/
         }
 
+        
     }
+   
 }
