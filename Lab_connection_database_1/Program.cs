@@ -19,6 +19,7 @@ namespace Lab_connection_database_1
 
         public War(string name, int life)
         {
+<<<<<<< Updated upstream
             this.name = name;
             this.life = life;
             Log.AddRow(GetType().Name, "Вызов конструктора класса War");
@@ -97,6 +98,13 @@ namespace Lab_connection_database_1
 
             CreateDB();
             string sqlExpression = String.Format("SELECT * FROM {0}", CreatingTables(index));
+=======
+            string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            string sqlExpression = "SELECT * FROM TEST_lab_tab";
+            string str1, str2,str3;
+            string name_str0=" ", name_str1, name_str2, name_str3;
+            string type_db0, type_db1, type_db2, type_db3;
+>>>>>>> Stashed changes
             using(SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
@@ -155,9 +163,22 @@ namespace Lab_connection_database_1
                         Match m = re.Match(Convert.ToString(reader[0]));
                         tableList.Add(Convert.ToString(m));
 
+<<<<<<< Updated upstream
                     }
                 }
                 foreach (string s in tableList)
+=======
+        }
+        
+        void lab_db_3()
+        {/*
+            static void Main(string[] args)
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+                string sqlExpression = "SELECT COUNT(*) FROM TEST_lab_tab";
+                int count = 0;
+                using (SqlConnection connection = new SqlConnection(connectionString))
+>>>>>>> Stashed changes
                 {
                     if (string.IsNullOrEmpty(s))
                     {
